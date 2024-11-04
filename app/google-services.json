@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "23139405319",
+    "project_id": "primevil-3bea3",
+    "storage_bucket": "primevil-3bea3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:23139405319:android:540702be293c9fcde324a2",
+        "android_client_info": {
+          "package_name": "se.fzy.primevil"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBAFkHUiDSHqCqSWPYIUEPjpFJs25V1F0I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

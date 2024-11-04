@@ -2,6 +2,8 @@
 plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.jetbrains.kotlin.android) apply false
+    alias(libs.plugins.googleServices) apply false
+    alias(libs.plugins.firebase.crashlytics) apply false
     alias(libs.plugins.detekt) apply false
     alias(libs.plugins.conventionalCommits)
     alias(libs.plugins.spotless)

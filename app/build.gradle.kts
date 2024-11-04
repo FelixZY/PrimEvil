@@ -9,12 +9,12 @@ plugins {
 
 android {
     namespace = "se.fzy.primevil"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "se.fzy.primevil"
         minSdk = 24
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 

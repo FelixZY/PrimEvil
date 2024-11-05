@@ -1,3 +1,4 @@
+import com.android.build.gradle.internal.dsl.NdkOptions.DebugSymbolLevel
 import io.gitlab.arturbosch.detekt.Detekt
 import io.gitlab.arturbosch.detekt.DetektCreateBaselineTask
 
@@ -31,6 +32,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            ndk { debugSymbolLevel = DebugSymbolLevel.FULL.name }
         }
     }
     compileOptions {

@@ -1,3 +1,5 @@
 #!/usr/bin/env sh
 
 ./gradlew spotlessCheck detekt
+. "$HOME/.cargo/env"
+cd primer/ && cargo fmt --check && cd ..

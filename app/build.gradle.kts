@@ -16,7 +16,7 @@ plugins {
 android {
     namespace = "se.fzy.primevil"
     compileSdk = 35
-    ndkVersion = "28.0.12433566"
+    ndkVersion = "27.2.12479018"
 
     defaultConfig {
         applicationId = "se.fzy.primevil"
@@ -30,6 +30,7 @@ android {
     }
 
     buildTypes {
+        debug { cargo { profile = "debug" } }
         release {
             isMinifyEnabled = true
             proguardFiles(
@@ -37,6 +38,7 @@ android {
                 "proguard-rules.pro",
             )
             ndk { debugSymbolLevel = DebugSymbolLevel.FULL.name }
+            cargo { profile = "release" }
         }
     }
     compileOptions {

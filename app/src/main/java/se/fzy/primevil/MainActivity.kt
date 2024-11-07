@@ -2,7 +2,6 @@ package se.fzy.primevil
 
 import android.icu.text.DecimalFormat
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -39,6 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -56,33 +56,31 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration.Companion.milliseconds
-import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
-import se.fzy.primevil.primer.Native
 import se.fzy.primevil.ui.theme.PrimEvilTheme
 
 class MainActivity : ComponentActivity() {
-    private val primer = Primer()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        Log.d("Native", Native.add(1, 2).toString())
-
         setContent {
             PrimEvilTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Content(
                         modifier = Modifier.fillMaxSize().padding(innerPadding),
-                        primer = primer,
+                        primer = Primer,
                     )
                 }
             }
@@ -91,7 +89,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun Content(modifier: Modifier = Modifier, primer: Primer = remember { Primer() }) {
+fun Content(modifier: Modifier = Modifier, primer: Primer = remember { Primer }) {
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -99,8 +97,8 @@ fun Content(modifier: Modifier = Modifier, primer: Primer = remember { Primer() 
             verticalArrangement = Arrangement.Center,
         ) {
             var isCrunching by remember { mutableStateOf(false) }
-            var prime by remember { mutableLongStateOf(runBlocking { primer.crunch(1).lastPrime }) }
-            val primeCount = remember(prime) { primer.primeMachineGeneratedCount }
+            var prime by remember { mutableLongStateOf(2) }
+            var primeCount by remember { mutableIntStateOf(1) }
             val snapshotInterval = 250.milliseconds
 
             Spacer(modifier = Modifier.weight(1f))
@@ -129,10 +127,12 @@ fun Content(modifier: Modifier = Modifier, primer: Primer = remember { Primer() 
                     if (it == null) return@Controls
 
                     prime = it.lastPrime
+                    primeCount = it.totalPrimes
                 },
                 onEachCrunch = {
                     if (Clock.System.now() - lastCrunchCallback > snapshotInterval) {
                         prime = it.lastPrime
+                        primeCount = it.totalPrimes
                         lastCrunchCallback = Clock.System.now()
                     }
                 },
@@ -169,7 +169,7 @@ fun Controls(
     onCrunchStart: () -> Unit = {},
     onCrunchEnd: (Primer.CrunchResult?) -> Unit = {},
     onEachCrunch: (Primer.CrunchResult) -> Unit = {},
-    primer: Primer = remember { Primer() },
+    primer: Primer = remember { Primer },
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         CrunchPresets(
@@ -192,7 +192,24 @@ fun Controls(
     }
 }
 
-private val presetButtons = arrayOf(1, 5, 10, 50, 100, 500, 1_000, 5_000, 10_000, 25_000, 50_000)
+private val presetButtons =
+    arrayOf(
+        1,
+        5,
+        10,
+        50,
+        100,
+        500,
+        1_000,
+        5_000,
+        10_000,
+        25_000,
+        50_000,
+        100_000,
+        500_000,
+        1_000_000,
+        1_500_000,
+    )
 
 @Composable
 @Preview
@@ -202,7 +219,7 @@ fun CrunchPresets(
     onCrunchStart: () -> Unit = {},
     onCrunchEnd: (Primer.CrunchResult?) -> Unit = {},
     onEachCrunch: (Primer.CrunchResult) -> Unit = {},
-    primer: Primer = remember { Primer() },
+    primer: Primer = remember { Primer },
 ) {
     val scrollState = rememberScrollState()
     val scope = rememberCoroutineScope()
@@ -216,18 +233,32 @@ fun CrunchPresets(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             val vibrator = rememberVibrator()
-            presetButtons.forEach {
+            presetButtons.forEach { presetValue ->
                 SuggestionChip(
                     enabled = enabled,
                     onClick = {
                         vibrator.vibrate(20.milliseconds)
-                        scope.launch {
-                            onCrunchStart()
-                            val result = primer.crunch(it, onEachCrunch)
-                            onCrunchEnd(result)
+                        onCrunchStart()
+                        scope.launch(Dispatchers.IO) {
+                            var result = Primer.CrunchResult(2, 0)
+
+                            primer.crunch(
+                                minOf(presetValue, 5000),
+                                OnChunkListener { firstPrimeIndex, chunk ->
+                                    result =
+                                        Primer.CrunchResult(
+                                            chunk.last(),
+                                            firstPrimeIndex + chunk.size,
+                                        )
+                                    scope.launch(Dispatchers.Main) { onEachCrunch(result) }
+                                    return@OnChunkListener isActive &&
+                                        firstPrimeIndex + chunk.size < presetValue
+                                },
+                            )
+                            withContext(Dispatchers.Main) { onCrunchEnd(result) }
                         }
                     },
-                    label = { Text("+" + DecimalFormat.getIntegerInstance().format(it)) },
+                    label = { Text("+" + DecimalFormat.getIntegerInstance().format(presetValue)) },
                 )
             }
         }
@@ -241,7 +272,7 @@ fun CrunchButton(
     onCrunchStart: () -> Unit = {},
     onCrunchEnd: (Primer.CrunchResult?) -> Unit = {},
     onEachCrunch: (Primer.CrunchResult) -> Unit = {},
-    primer: Primer = remember { Primer() },
+    primer: Primer = remember { Primer },
 ) {
     val vibrator = rememberVibrator()
     val crunchButtonInteractionSource = remember { MutableInteractionSource() }
@@ -253,26 +284,30 @@ fun CrunchButton(
             crunchButtonJob?.cancelAndJoin()
             return@LaunchedEffect
         }
-
         crunchButtonJob = launch {
             onCrunchStart()
-            var lastResult: Primer.CrunchResult? = null
-            var vibrationStartTimestamp = Instant.DISTANT_PAST
-            try {
-                primer.crunch(
-                    onEach = {
-                        lastResult = it
+            withContext(Dispatchers.IO) {
+                var lastResult: Primer.CrunchResult? = null
+                var vibrationStartTimestamp = Instant.DISTANT_PAST
+                try {
+                    primer.crunch(
+                        2500,
+                        OnChunkListener { firstPrimeIndex, chunk ->
+                            if (Clock.System.now() - vibrationStartTimestamp > 50.milliseconds) {
+                                vibrator.vibrate(40.milliseconds)
+                                vibrationStartTimestamp = Clock.System.now()
+                            }
 
-                        if (Clock.System.now() - vibrationStartTimestamp > 50.milliseconds) {
-                            vibrator.vibrate(40.milliseconds)
-                            vibrationStartTimestamp = Clock.System.now()
-                        }
-
-                        onEachCrunch(it)
-                    }
-                )
-            } catch (_: CancellationException) {}
-            onCrunchEnd(lastResult)
+                            lastResult =
+                                Primer.CrunchResult(chunk.last(), firstPrimeIndex + chunk.size)
+                            launch(Dispatchers.Main) { onEachCrunch(lastResult!!) }
+                            return@OnChunkListener isActive
+                        },
+                    )
+                    withContext(Dispatchers.Main) { onCrunchEnd(lastResult) }
+                } catch (_: CancellationException) {}
+                onCrunchEnd(lastResult)
+            }
         }
     }
 

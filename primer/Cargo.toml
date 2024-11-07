@@ -3,8 +3,23 @@ name = "primer"
 version = "0.1.0"
 edition = "2021"
 
-[dependencies]
-jni = "0.21.1"
-
 [lib]
-crate-type = ["staticlib", "dylib"]
+crate-type = ["staticlib", "rlib", "dylib"]
+
+[dependencies]
+env_logger = "0.11.5"
+jni = "0.21.1"
+log = "0.4.22"
+rusqlite = { version = "0.32.1", features = ["bundled"] }
+skiplist = "0.5.1"
+uuid = { version = "1.11.0", features = ["v4", "fast-rng"] }
+
+[dev-dependencies]
+criterion = "0.5.1"
+
+[target.'cfg(target_os = "android")'.dependencies]
+android_logger = "0.14.1"
+
+[[bench]]
+name = "primer_bench"
+harness = false

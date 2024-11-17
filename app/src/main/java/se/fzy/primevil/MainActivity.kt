@@ -250,7 +250,7 @@ fun CrunchPresets(
                         vibrator.vibrate(20.milliseconds)
                         onCrunchStart()
                         scope.launch(Dispatchers.IO) {
-                            var result = Primer.CrunchResult(2, 0)
+                            var result = Primer.CrunchResult(2, 1)
 
                             primer.crunch(
                                 minOf(presetValue, 5000),

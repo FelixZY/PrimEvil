@@ -78,7 +78,10 @@ impl Primer {
                 // Candidate is always odd.
                 // Primes above 2 cannot be even numbers.
                 // Multiply existing prime by 2 to optimize for this.
-                self.false_candidates.insert((key + prime * 2, prime));
+                self.false_candidates
+                    .insert_or_uptick((key + prime * 2, prime), |(key, prime)| {
+                        (key + prime * 2, prime)
+                    });
 
                 lowest = self
                     .false_candidates

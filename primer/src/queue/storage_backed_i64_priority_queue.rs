@@ -36,6 +36,29 @@ impl StorageBackedI64PriorityQueue {
         }
     }
 
+    fn insert_internal(&mut self, index: usize, item: (i64, i64)) {
+        if index < self.queue.len() {
+            if self.queue.len() == self.queue.capacity() {
+                self.offload_back()
+            }
+            self.queue.insert(index.min(self.queue.len()), item);
+        } else if self.queue.len() == self.queue.capacity() {
+            self.to_storage_buffer.push_back(item);
+            self.offload_back()
+        } else if self.size > self.queue.len() {
+            // We can't be sure the given item is the smallest of any stored items.
+            // Offload it to storage for now and deal with it when the queue is polled for items.
+            self.to_storage_buffer.push_back(item);
+            if self.to_storage_buffer.len() == self.to_storage_buffer.capacity() {
+                self.offload_storage_buffer()
+            }
+        } else {
+            self.queue.push_back(item);
+        }
+
+        self.size += 1;
+    }
+
     fn fill_queue_from_storage(&mut self) {
         let pull_count = self
             .offload_limit
@@ -115,32 +138,34 @@ impl PriorityQueue for StorageBackedI64PriorityQueue {
     }
 
     fn insert(&mut self, item: (i64, i64)) {
-        let insertion_point: usize = self
-            .queue
-            .binary_search_by_key(&item.0, |&(priority, _)| priority)
-            .unwrap_or_else(|index| index);
-
-        if insertion_point < self.queue.len() {
-            if self.queue.len() == self.queue.capacity() {
-                self.offload_back()
-            }
-            self.queue
-                .insert(insertion_point.min(self.queue.len()), item);
-        } else if self.queue.len() == self.queue.capacity() {
-            self.to_storage_buffer.push_back(item);
-            self.offload_back()
-        } else if self.size > self.queue.len() {
-            // We can't be sure the given item is the smallest of any stored items.
-            // Offload it to storage for now and deal with it when the queue is polled for items.
-            self.to_storage_buffer.push_back(item);
-            if self.to_storage_buffer.len() == self.to_storage_buffer.capacity() {
-                self.offload_storage_buffer()
-            }
+        if self.queue.is_empty() || item.0 >= self.queue.back().unwrap().0 {
+            self.insert_internal(self.queue.len(), item);
         } else {
-            self.queue.push_back(item);
+            let insertion_point: usize = self
+                .queue
+                .binary_search_by_key(&item.0, |&(priority, _)| priority)
+                .unwrap_or_else(|index| index);
+            self.insert_internal(insertion_point, item);
         }
+    }
 
-        self.size += 1;
+    fn insert_or_uptick(&mut self, mut item: (i64, i64), uptick: fn((i64, i64)) -> (i64, i64)) {
+        let mut insertion_point: Result<usize, usize> =
+            if self.queue.is_empty() || item.0 >= self.queue.back().unwrap().0 {
+                Err(self.queue.len())
+            } else {
+                Ok(0)
+            };
+        while insertion_point.is_ok() {
+            insertion_point = self
+                .queue
+                .binary_search_by_key(&item.0, |&(priority, _)| priority);
+
+            if insertion_point.is_ok() {
+                item = uptick(item)
+            }
+        }
+        self.insert_internal(insertion_point.unwrap_err(), item);
     }
 }
 

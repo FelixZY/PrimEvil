@@ -5,4 +5,5 @@ pub trait PriorityQueue {
     fn peek(&mut self) -> Option<&(i64, i64)>;
     fn poll(&mut self) -> Option<(i64, i64)>;
     fn insert(&mut self, item: (i64, i64));
+    fn insert_or_uptick(&mut self, item: (i64, i64), uptick: fn((i64, i64)) -> (i64, i64));
 }

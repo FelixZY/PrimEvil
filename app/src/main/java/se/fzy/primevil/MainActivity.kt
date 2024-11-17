@@ -17,6 +17,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -47,6 +48,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -153,9 +155,15 @@ fun AnimatedCounter(value: Long) {
                 SizeTransform(clip = false)
         },
     ) {
+        val clipboard = LocalClipboardManager.current
+        val vibrator = rememberVibrator()
         Text(
             it.toString(),
-            modifier = Modifier.fillMaxWidth(),
+            modifier =
+                Modifier.fillMaxWidth().clickable {
+                    vibrator.vibrate(40.milliseconds)
+                    clipboard.setText(buildAnnotatedString { append(value.toString()) })
+                },
             style = MaterialTheme.typography.displayLarge,
             textAlign = TextAlign.Center,
         )

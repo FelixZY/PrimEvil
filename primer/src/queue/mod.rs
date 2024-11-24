@@ -1,4 +1,5 @@
 pub(crate) mod dao;
+mod primer_prio_queue;
 mod prio_queue;
 mod storage_backed_i64_priority_queue;
 

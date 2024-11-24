@@ -7,6 +7,7 @@ extern crate log;
 mod primer;
 mod queue;
 mod storage;
+mod data;
 
 #[cfg(target_os = "android")]
 use android_logger::Config;

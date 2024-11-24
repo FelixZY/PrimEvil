@@ -12,6 +12,7 @@ jni = "0.21.1"
 log = "0.4.22"
 rusqlite = { version = "0.32.1", features = ["bundled"] }
 uuid = { version = "1.11.0", features = ["v4", "fast-rng"] }
+arraydeque = "0.5.1"
 
 [dev-dependencies]
 criterion = "0.5.1"
